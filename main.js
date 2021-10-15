@@ -5,7 +5,7 @@ const NO_WINNER = 0;
 const PLAYER1 = 1;
 const PLAYER2 = 2;
 
-const GRID_SIZE = 3; // number of row == number of columns
+const GRID_SIZE = 5; // number of row == number of columns
 
 /*
 // Para debug en nodejs
@@ -60,19 +60,22 @@ function createStyleSheet() {
 /** Gameboard module **/
 const Gameboard = (() => {
 	
-	/** Private Attributes **/
-	let gameboard = [ 
-				[EMPTY_CELL, EMPTY_CELL, EMPTY_CELL], 
-				[EMPTY_CELL, EMPTY_CELL, EMPTY_CELL], 
-				[EMPTY_CELL, EMPTY_CELL, EMPTY_CELL] 
-					];
-	
 	/** Private Methods **/
-	/*
-	const _privateMethod1 = () => {
-		// code of _privateMethod1
-	};
-	*/
+	const _buildGameboard = (rows, columns, value) => {
+		let returnArray = [];
+		let rowArray = [];
+		for (let row = 0; row < rows; row++) {
+			rowArray = [];
+			for (let column = 0; column < columns; column++) {
+				rowArray.push(value);
+			}
+		returnArray.push(rowArray);
+		} 
+		return returnArray;
+	}
+	
+	/** Private Attributes **/
+	let gameboard = _buildGameboard(GRID_SIZE, GRID_SIZE, EMPTY_CELL);
 	
 	/** Public Methods **/
 	// Getters and Setters
@@ -242,10 +245,10 @@ const DisplayController = ((gb) => {
 })(Gameboard);
 
 /** Factory object Player **/
-const Player = (name, graph) => {
+const Player = (playerId, name, graph) => {
 	
 	/** Private Attributes **/
-	//let name = name;
+	let id = playerId;
 	
 	/** Private Methods **/
 	/*
@@ -260,6 +263,7 @@ const Player = (name, graph) => {
 	
 	/** Public Methods **/
 	// Getters and Setters
+	const getId = () => { return id; };
 	const getName = () => { return name; };
 	const getGraph = () => { return graph; };
 	
@@ -306,6 +310,7 @@ const Player = (name, graph) => {
 
 	// Object returned
 	return {
+		getId,
 		getName,
 		getGraph,
 		play,
@@ -316,8 +321,8 @@ const Player = (name, graph) => {
 /** Main **/
 //createStyleSheet()
 
-const player1 = Player("Player 1", "X");
-const player2 = Player("Player 2", "0");
+const player1 = Player(PLAYER1, "Player 1", "X");
+const player2 = Player(PLAYER2, "Player 2", "0");
 
 let play = null;
 
@@ -340,7 +345,7 @@ while (! GameController.getGameOver()) {
 	
 	DisplayController.displayGameboard(player1.getGraph(), player2.getGraph());
 	
-	if ( GameController.checkGameOver() ) {
+	if (GameController.checkGameOver()) {
 		DisplayController.displayWinner(GameController.getWinner());
 	}
 	
