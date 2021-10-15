@@ -4,13 +4,29 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Library</title>
+	<title>Tic Tac Toe</title>
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
 	<div class="header">
+		<button id=startButton" onclick="startGame()">(Re)Start Game</button>
 	</div>
-	<div class="content">
+	<div class="content"></div>
+	<table class="outcome">
+		<tr>
+			<th></th><th>Player</th><th>CPU</th><th>Last Winner</th>
+		</tr>
+		<tr>
+			<td>Number of victories</td><td id="numberOfUserVictories">-</td><td id="numberOfCPUVictories">-</td><td id="winner">-</td>
+		</tr>
+	</table>
+	<!-- Modal -->
+	<div class="modal" id="winMessage" style="display:none">
+		<!-- Modal Content -->
+		<div class="modal-content">
+			<span class="close">&times;</span>
+			<div id="message"></div>
+		</div>
 	</div>
 	<script src="./main.js"></script>
 </body>

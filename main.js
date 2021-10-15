@@ -5,7 +5,7 @@ const NO_WINNER = 0;
 const PLAYER1 = 1;
 const PLAYER2 = 2;
 
-const GRID_SIZE = 5; // number of row == number of columns
+const GRID_SIZE = 3; // number of row == number of columns
 
 /*
 // Para debug en nodejs
@@ -57,11 +57,28 @@ function createStyleSheet() {
 }
 */
 
-/** Gameboard module **/
-const Gameboard = (() => {
+// Para evitar la falta de referencia de algún módulo u objeto dentro de un módulo, declaro todo aquí al principio.
+// Luego uso Object.freeze() para congelar los módulos y objetos declarados.
+// Declarar todo como funciones vacías
+/** Modules declarations **/
+let Gameboard = () => {};
+let GameController = () => {};
+let DisplayController = () => {};
+
+/** Factory Objects declarations **/
+let Player = () => {};
+
+/** Gameboard module implementation **/
+Gameboard = (() => {
+	
+		/** Private Attributes **/
+	let gameboard = [];
 	
 	/** Private Methods **/
-	const _buildGameboard = (rows, columns, value) => {
+	
+	/** Public Methods **/
+	
+	const buildGameboard = (rows, columns, value) => {
 		let returnArray = [];
 		let rowArray = [];
 		for (let row = 0; row < rows; row++) {
@@ -71,14 +88,9 @@ const Gameboard = (() => {
 			}
 		returnArray.push(rowArray);
 		} 
-		return returnArray;
+		gameboard = returnArray;
 	}
 	
-	/** Private Attributes **/
-	let gameboard = _buildGameboard(GRID_SIZE, GRID_SIZE, EMPTY_CELL);
-	
-	/** Public Methods **/
-	// Getters and Setters
 	const getGameboard = () => { return gameboard; };
 	const setCellValue = (value, row, column) => { gameboard[row][column] = value; };
 	const getCellValue = (row, column) => { return gameboard[row][column]; };
@@ -128,6 +140,7 @@ const Gameboard = (() => {
 	
 	// Object returned
 	return {
+		buildGameboard,
 		getGameboard,
 		setCellValue, 
 		getCellValue, 
@@ -138,14 +151,17 @@ const Gameboard = (() => {
 		threeInADiagonal,
 	};
 })();
+Object.freeze(Gameboard);
 
-/** GameController module **/
-const GameController = ((gb) => {
+/** GameController module implementation **/
+GameController = ((gb) => {
 	
 	/** Private Attributes **/
 	let gameOver = false;
 	let whoPlays = PLAYER1;
 	let turn = 1;
+	
+	/** Public Attributes (constants or references) **/
 	
 	/** Private Methods **/
 	/*
@@ -158,6 +174,10 @@ const GameController = ((gb) => {
 	// Getters and Setters
 	const getWhoPlays = () => { return whoPlays; };
 	const getTurn = () => { return turn; };
+	
+	const resetGameboard = () => {
+		Gameboard.buildGameboard(GRID_SIZE, GRID_SIZE, EMPTY_CELL);
+	}
 	
 	const getWinner = () => {
 		if (Gameboard.threeInARow(PLAYER1) || Gameboard.threeInAColumn(PLAYER1) 
@@ -197,16 +217,18 @@ const GameController = ((gb) => {
 	return {
 		getWhoPlays,
 		getTurn,
+		resetGameboard,
 		getWinner,
 		getGameOver,
 		checkGameOver,
 		endTurn,
 		updateBoard,
 	};
-})(Gameboard);
+})(Gameboard, Player);
+Object.freeze(GameController);
 
-/** DisplayController module **/
-const DisplayController = ((gb) => {
+/** DisplayController module implementation **/
+DisplayController = ((gb) => {
 	
 	/** Private Attributes **/
 	
@@ -218,23 +240,77 @@ const DisplayController = ((gb) => {
 	*/
 	
 	/** Public Methods **/
-	// Getters and Setters
+/*
+	const displayMainScreen = () => {
+		
+		//let contentDiv = document.getElementsByClassName("content")[0];
+		//contentDiv.innerHTML = "";
+		let headerDiv = document.getElementsByClassName("header")[0];
+		headerDiv.innerHTML = "";
+		let startButton = document.createElement("button");
+		startButton.innerText = "START GAME";
+		headerDiv.appendChild(startButton);
+		startButton.onclick = startGame();
+	}
+*/
+
 	const displayGameboard = (graph1, graph2) => { 
+		
+		let contentDiv = document.getElementsByClassName("content")[0];
+		contentDiv.innerHTML = "";
+		
+		let gameboardDiv = document.createElement("div");
+		gameboardDiv.setAttribute("id", "gameboard");
+		gameboardDiv.className = "gameboard";
+		
+		let rowUl = null;
+		let columnLi = null;
+		
 		let output = "";
 		for (let row = 0; row < GRID_SIZE; row++) {
+			rowUl = document.createElement("ul");
+			//gameboardDiv.setAttribute("data-row", row);
+			
 			for (let column = 0; column < GRID_SIZE; column++) {
-				if (Gameboard.getCellValue(row, column) == PLAYER1) output += graph1 + "|";
-				else if (Gameboard.getCellValue(row, column) == PLAYER2) output += graph2 + "|";
-				else if (Gameboard.isEmptyCell(row, column)) output += " |";
+				columnLi = document.createElement("li");
+				columnLi.className = "cell";
+				columnLi.setAttribute("data-column", column);
+				columnLi.setAttribute("data-row", row);
+				
+				if (Gameboard.getCellValue(row, column) == PLAYER1) {
+					/*
+					columnLi.style = "\
+								list-style-image: url(./images/graphPlayer1.png);\
+					"
+					*/
+					columnLi.innerText = graph1;
+				}
+				else if (Gameboard.getCellValue(row, column) == PLAYER2) {
+					/*
+					columnLi.style = "\
+								list-style-image: url(./images/graphPlayer2.png);\
+					"
+					*/
+					columnLi.innerText = graph2;
+				}
+				else if (Gameboard.isEmptyCell(row, column)) {
+					columnLi.innerText = "";
+				}
+				rowUl.appendChild(columnLi);
 			}
-			output +="\n"
-			if (row != 3) output += "-----\n";
+			gameboardDiv.appendChild(rowUl);
 		}
-		console.log(output);
+		contentDiv.appendChild(gameboardDiv);
+		
+		// Don't forget to add the EventListener to each cell
+		addEventListeners();
 	};
 
-	const displayWinner = (winner) => {
-		console.log("The winner is: " + winner);
+	const displayWinner = (winner, numberOfUserVictories, numberOfCPUVictories) => {
+		//console.log("The winner is: " + winner);
+		document.getElementById("numberOfUserVictories").innerText = numberOfUserVictories;
+		document.getElementById("numberOfCPUVictories").innerText = numberOfCPUVictories;
+		document.getElementById("winner").innerText = winnerToString(winner);
 	}
 
 	// Object returned
@@ -243,9 +319,10 @@ const DisplayController = ((gb) => {
 		displayWinner,
 	};
 })(Gameboard);
+Object.freeze(DisplayController);
 
-/** Factory object Player **/
-const Player = (playerId, name, graph) => {
+/** Factory object Player implementation **/
+Player = (playerId, name, graph) => {
 	
 	/** Private Attributes **/
 	let id = playerId;
@@ -267,43 +344,9 @@ const Player = (playerId, name, graph) => {
 	const getName = () => { return name; };
 	const getGraph = () => { return graph; };
 	
-	const play = () => {
-		let row = null;
-		let column = null;
-		let input = null
-		
-		const properties = [
-			{
-				row: 'row',
-				validator: /^[1-3]$/,
-				warning: 'Row must be a number between 0 and 2'
-			},
-			{
-				column: 'column',
-				validator: /^[1-3]$/,
-				warning: 'Column must be a number between 0 and 2'
-			}
-		];
-		/*
-		prompt.get(properties, function (err, input) {
-			if (err) { return onErr(err); }
-		});
-		* */
-		
-		while (input == null) {
-			input = prompt("Select Row and Column (type 13 for Row=1 and Col=3): ");
-			
-			if (! Number.isInteger(parseInt(input))) { 
-				console.log("Wrong input!");
-				input = null; 
-				}
-			else if (input[0] < 1 || input[1] < 1 || input[0] > GRID_SIZE || input[1] > GRID_SIZE) { 
-					console.log("Wrong input!");
-					input = null; 
-			}
-		}
-		row = parseInt(input[0]) - 1;
-		column = parseInt(input[1]) - 1;
+	const play = (event) => {
+		let row = event.currentTarget.dataset.row;
+		let column = event.currentTarget.dataset.column;
 		return {row, column};
 	};
 	
@@ -316,81 +359,141 @@ const Player = (playerId, name, graph) => {
 		play,
 	}
 };
+Object.freeze(Player);
 
-
-/** Main **/
-//createStyleSheet()
-
+/** Global variables **/
 const player1 = Player(PLAYER1, "Player 1", "X");
 const player2 = Player(PLAYER2, "Player 2", "0");
 
-let play = null;
+let numberOfUserVictories = 0; // Player1
+let numberOfCPUVictories = 0; // Player2
 
-while (! GameController.getGameOver()) {
+function winnerToString(winner) {
+		switch(winner) {
+			case PLAYER1:
+				return "PLAYER 1";
+				break;
+			case PLAYER2:
+				return "PLAYER 2";
+				break;
+			case NO_WINNER:
+				return "TIE";
+				break;
+			default:
+				// code block
+		}
+}
+
+function startGame() {
 	
+	hideWinMessageModal();
+	
+	// Game screen: reset and draw gameboard, player names, ...
+	GameController.resetGameboard();
+	DisplayController.displayGameboard(player1.getGraph(), player2.getGraph());
+	
+	// The start player is PLAYER_1 (set in GameController constructor)
+	
+	// Print: turn_number, whoplays
+	
+	
+}
+
+function restartGame() {
+	//GameController.resetGameboard();
+	
+	// Añadir un modal con el MENSAJE DE VICTORIA
+}
+
+function computePlay(event) {
+		
+	let play = null;
 	console.log("TURN: " + GameController.getTurn());
+	console.log ("Turn for Player" + GameController.getWhoPlays() + "\n\n");
 	
 	if (GameController.getWhoPlays() == PLAYER1) {
-		do {
-			play = player1.play();
-		} while (!Gameboard.isEmptyCell(play.row, play.column));
+		play = player1.play(event);
+		if (!Gameboard.isEmptyCell(play.row, play.column)) {
+			// square not free: emit a sound or do something...
+			return;
+		}
 		GameController.updateBoard(PLAYER1, play);
 		
 	} else if (GameController.getWhoPlays() == PLAYER2) {
-		do {
-			play = player2.play();
-		} while (!Gameboard.isEmptyCell(play.row, play.column));
+		play = player2.play(event);
+		if (!Gameboard.isEmptyCell(play.row, play.column)) {
+			// square not free: emit a sound or do something...
+			return;
+		}
 		GameController.updateBoard(PLAYER2, play);
 	};
 	
 	DisplayController.displayGameboard(player1.getGraph(), player2.getGraph());
 	
+	console.log("END OF TURN: " + GameController.getTurn());
+
+	// Check for gameover
 	if (GameController.checkGameOver()) {
-		DisplayController.displayWinner(GameController.getWinner());
+		let winner = GameController.getWinner();
+		winner = PLAYER1 ? numberOfUserVictories++ : numberOfCPUVictories++;
+		DisplayController.displayWinner(winner, numberOfUserVictories, numberOfCPUVictories);
+		showWinMessageModal(winner); // show win message
 	}
 	
-	console.log("END OF TURN: " + GameController.getTurn());
 	GameController.endTurn();
+	
+	console.log ("====================================\n\n");
+	
 }
 
 /*
+function main() {
+	
+	// Main screen: add js code to regenerate it (for each restart)
+	// Button with Eventlistener: startGame()
+	DisplayController.displayMainScreen();
+	
+}
+*/
 
-// Add buttons Event listener
-// let buttonElem = document.getElementById("addBook");
-// buttonElem.addEventListener("click", addBookToLibrary);
+/** Main **/
+//main();
 
-// Modal 'addBookModal'
-function hideAddBookForm() {
-	document.getElementById("addBookModal").style.display = "none";
+/** Listeners **/
+
+function addEventListeners() {
+	// Eventlistener on each cell: computePlay()
+	let cellElements = document.getElementsByClassName("cell");
+	// uso del spread operator para transformar la HTMLCollection en Array y poder usar forEach
+	[...cellElements].forEach((element, index, array) => {
+		element.onclick = computePlay;
+	});
 }
 
-function showAddBookForm(modalElement) {
-	document.getElementById("addBookModal").style.display = "block";
-}
+
+/** Modals **/
 
 // Get the modal
-let addBookModal = document.getElementById("addBookModal");
-
-// Get the button that opens the modal
-let buttonElem = document.getElementById("addBook");
-buttonElem.onclick = showAddBookForm; // When the user clicks on the button, open the modal
-
-// OK button
-let okButtonElem = document.getElementById("okButton");
-okButtonElem.addEventListener("click", hideAddBookForm);
-okButtonElem.addEventListener("click", addBookToLibrary);
-
-// Cancel button
-let  cancelButtonElem = document.getElementById("cancelButton");
-cancelButtonElem.addEventListener("click", hideAddBookForm);
+let winMessageModal = document.getElementById("winMessage");
 
 // Get the <span> element that closes the modal
 let closeModal = document.getElementsByClassName("close")[0];
-
 // When the user clicks on <span> (x), close the modal
-closeModal.onclick = hideAddBookForm;
-*/
+closeModal.onclick = hideWinMessageModal;
 
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+	if (event.target == winMessageModal) {
+		hideWinMessageModal(winMessageModal);
+	}
+}
 
+function showWinMessageModal(winner) {
+	document.getElementById("winMessage").style.display = "block";
+	document.getElementById("message").innerText = "WINNER: " + winnerToString(winner);
+}
 
+function hideWinMessageModal() {
+	document.getElementById("winMessage").style.display = "none";
+}
 
