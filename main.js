@@ -230,9 +230,9 @@ GameController = ((gb) => {
 	};
 
 	const init = () => {
-		Object.assign(noPlayer, Player(NO_WINNER, "No One", " "));
-		players.push(Player(PLAYER1, "Player", "X", "blue"));
-		players.push(Player(PLAYER2, "CPU", "0", "red"));
+		Object.assign(noPlayer, Player(NO_WINNER, "No One", " ", "gray"));
+		players.push(Player(PLAYER1, "X", "X", "blue"));
+		players.push(Player(PLAYER2, "0", "0", "red"));
 	}
 
 	const reset = () => {
@@ -275,6 +275,15 @@ GameController = ((gb) => {
 		localStorage.setItem("lastWinnerName", lastWinner.getName());
 	}
 	
+	const resetScore = () => {
+		players.forEach((player, index, array) => {
+			player.resetNumberOfVictories();
+		});
+		lastWinner = noPlayer;
+		lastWinnerName = lastWinner.getName();
+		saveScoreboard();
+	}
+	
 	// Object returned
 	return {
 		setLastWinner,
@@ -293,6 +302,7 @@ GameController = ((gb) => {
 		updateGameboard,
 		loadScoreboard,
 		saveScoreboard,
+		resetScore,
 	};
 })(Gameboard, Player);
 Object.freeze(GameController, Player);
@@ -379,7 +389,6 @@ DisplayController = ((gb) => {
 	}
 
 	const displayScoreboard = () => {
-		//console.log("The winner is: " + winner);
 		document.getElementById("player1Name").innerText = GameController.getPlayer(PLAYER1).getName();
 		document.getElementById("player2Name").innerText = GameController.getPlayer(PLAYER2).getName();
 		document.getElementById("numberOfUserVictories").innerText = GameController.getPlayer(PLAYER1).getNumberOfVictories();
@@ -470,6 +479,7 @@ function startGame() {
 }
 
 function restartGame() {
+	hideWinMessageModal();
 	GameController.reset();
 	DisplayController.displayGameboard();
 	addCellEventListeners();
@@ -523,12 +533,20 @@ startGame();
 
 function addClicked(event) {
 	event.preventDefault();
-	event.currentTarget.classList.add("clicked");
+	//event.currentTarget.classList.add("clicked");
 	}
 
-function removeClicked(event) {
-	event.currentTarget.classList.remove("clicked");
-	}
+//function removeClicked(event) {
+	//event.currentTarget.classList.remove("clicked");
+	//}
+
+function resetScore() {
+	event.preventDefault();
+	GameController.resetScore();
+	DisplayController.displayScoreboard();
+}
+
+
 
 function addCellEventListeners() {
 	// Eventlistener on each cell: computePlay()
@@ -567,10 +585,25 @@ window.onclick = function(event) {
 
 function showWinMessageModal(winner) {
 	document.getElementById("winMessage").style.display = "block";
-	document.getElementById("message").innerText = "THE WINNER IS: " + winner.getName();
+	let message = document.getElementById("message")
+	message.innerHTML = "THE WINNER IS: <p id='msgWinner'>" + winner.getName() + "<p>";
+	message.querySelector("#msgWinner").style = "\
+		color:" + winner.getCSSColor() + ";\
+		font-size: 80px;"
+	
+	let elements = document.querySelectorAll("body > *:not(.modal)")
+	for (let i=0; i< elements.length; i++) {
+		elements[i].classList.add("blurred");
+	}
+	
+	//document.getElementsByTagName("body")[0].classList.add("blurred");
 }
 
 function hideWinMessageModal() {
 	document.getElementById("winMessage").style.display = "none";
+	let elements = document.querySelectorAll("body > *:not(.modal)")
+	for (let i=0; i< elements.length; i++) {
+		elements[i].classList.remove("blurred");
+	}
 }
 

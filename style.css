@@ -3,9 +3,46 @@ body {
 	flex-direction: column;
 	align-items: center;
 	gap: 50px;
+	background-color: aliceblue;
 }
 
-.button {
+.header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 50px;
+}
+
+.blurred {
+	/*filter: blur(6px);*/
+	-webkit-filter: blur(6px);
+	-webkit-transition: 0.5s -webkit-filter linear;
+}
+
+.button#startButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: lightgreen;
+	border-style: solid;
+	border-color: black;
+	border-width: 3px;
+	border-radius: 20px;
+	width: 200px;
+	height: 40px;
+	font-size: 30px;
+	color: black;
+	padding: 4px ;
+	cursor:pointer;
+}
+
+.button#startButton:active {
+	background-color: black;
+	border-color: lightgreen;
+	color: lightgreen;
+}
+
+.button#resetButton {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -22,13 +59,11 @@ body {
 	cursor:pointer;
 }
 
-.button:active {
+.button#resetButton:active {
 	background-color: black;
 	border-color: lightcoral;
 	color: lightcoral;
 }
-
-
 
 table.gameboard, td.gameboard {
 	border: 2px solid black;
@@ -102,28 +137,30 @@ td {
 	font-size: 20px;
 }
 
-
-
 .modal {
 	display: none; /* Hidden by default */
 	position: centered; /* Stay in place */
 	z-index: 1; /* Sit on top */
 	left: 0;
 	top: 0;
-	width: 50%; /* Full width */
+	width: 70%; /* Full width */
 	height: 100%; /* Full height */
-	overflow: auto; /* Enable scroll if needed */
+	overflow: none; /* Enable scroll if needed */
 	background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+	margin-top: -500px;
+	opacity: 60%;
 }
 
 /* Modal Content/Box */
 .modal-content {
 	background-color: #fefefe;
-	margin: 15% auto; /* 15% from the top and centered */
+	/*margin: 15% auto; /* 15% from the top and centered */
 	padding: 20px;
 	border: 1px solid #888;
-	width: 80%; /* Could be more or less, depending on screen size */
-	font-size: 32 px;
+	width: 100%; /* Could be more or less, depending on screen size */
+	font-family: "Apple Chancery", cursive;
+	font-size: 40px;
+	text-align: center;
 }
 
 /* The Close Button */
