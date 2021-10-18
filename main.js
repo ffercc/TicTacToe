@@ -61,39 +61,38 @@ Gameboard = (() => {
 		};
 	
 	const threeInARow = (value) => {
-		let returnValue = false;
+		let returnValue = -1;
 		for (let row = 0; row < GRID_SIZE; row++) {
-			returnValue = returnValue || gameboard[row].every( (val) => val == value );
+			if (gameboard[row].every( (val) => val == value)) {returnValue = row;}
 		}
-		return returnValue;
+		return returnValue; // returns the winning row or -1 (no win condition met)
 	};
 	
 	const threeInAColumn = (value) => {
-		let returnValue = false;
+		let returnValue = -1;
 		let columnTempArray = [];
 		for (let column = 0; column < GRID_SIZE; column++) {
 			columnTempArray = [];
 			for (let row = 0; row < GRID_SIZE; row++) {
 				columnTempArray.push(gameboard[row][column]);
 			}
-			returnValue = returnValue || columnTempArray.every( (val) => val == value );
+			if (columnTempArray.every( (val) => val == value )) {returnValue = column;}
 		}
-		return returnValue;
+		return returnValue; // returns the winning column or -1 (no win condition met)
 	};
 	
 	const threeInADiagonal = (value) => {
-		let returnValue;
+		let returnValue = -1;
 		let diagonalTempArray1 = [];
 		let diagonalTempArray2 = [];
 		for (let row = 0; row < GRID_SIZE; row++) {
 			diagonalTempArray1.push(gameboard[row][row]);
 			diagonalTempArray2.push(gameboard[row][(GRID_SIZE-1)-row]);
 		}
-		returnValue = diagonalTempArray1.every( (val) => val == value ) 
-			|| diagonalTempArray2.every( (val) => val == value );
-		return returnValue;
+		if (diagonalTempArray1.every( (val) => val == value )) returnValue = 0;
+		if (diagonalTempArray2.every( (val) => val == value )) returnValue = 1;
+		return returnValue; // returns the winning diagonal (0 or 1) or -1 (no win condition met) 
 	};
-	
 	
 	// Object returned
 	return {
@@ -117,7 +116,9 @@ GameController = ((gb) => {
 	const noPlayer = {}; // defined in init()
 	const players = []; // populated in init()
 	
-	let gameOver = false;
+	const winningConditions = {};
+	
+	//let gameOver = false;
 	let whoPlays = noPlayer;
 	let turn = 1;
 	
@@ -142,6 +143,13 @@ GameController = ((gb) => {
 		turn = 1;
 	}
 	
+	const _resetWinningConditions = () => {
+		winningConditions.winner = noPlayer;
+		winningConditions.winningComboType = "none";
+		winningConditions.winningComboNumber = -1;
+		winningConditions.gameOver = false;
+	}
+	
 	
 	/** Public Methods **/
 	
@@ -164,20 +172,52 @@ GameController = ((gb) => {
 	
 	const getCellValue = (row, column) => {return Gameboard.getCellValue(row, column);};
 	
-	const whoWon = () => {
+	const whoWonAndHow = () => {
+		/*
 		let winner = players.find((player) => (Gameboard.threeInARow(player.getId()) 
 			|| Gameboard.threeInAColumn(player.getId()) 
 			|| Gameboard.threeInADiagonal(player.getId()))
 		);
 		if (winner === undefined) { winner = noPlayer; };
-		return winner;
+		*/
+		let winningRow = -1;
+		let winningColumn = -1;
+		let winningDiagonal = -1;
+		let winConditionMet = false;
+		
+		players.forEach((player, index, array) => {
+			if (! winConditionMet) {
+				winningRow = Gameboard.threeInARow(player.getId());
+				winningColumn = Gameboard.threeInAColumn(player.getId());
+				winningDiagonal = Gameboard.threeInADiagonal(player.getId());
+				
+				if (winningRow != -1) {
+					winningConditions.winner = player;
+					winningConditions.winningComboType = "row";
+					winningConditions.winningComboNumber = winningRow;
+					winConditionMet = true;
+				} else if (winningColumn != -1) {
+					winningConditions.winner = player;
+					winningConditions.winningComboType = "column";
+					winningConditions.winningComboNumber = winningColumn;
+					winConditionMet = true;
+				} else if (winningDiagonal != -1) {
+					winningConditions.winner = player;
+					winningConditions.winningComboType = "diagonal";
+					winningConditions.winningComboNumber = winningDiagonal;
+					winConditionMet = true;
+				}
+			}
+		});
+		return;
 	};
 	
 	const getGameOver = () => { return gameOver; }
 	
-	const checkGameOver = () => {
-		gameOver =(whoWon() != noPlayer || Gameboard.isFull())
-		return gameOver;
+	const checkWinningConditions = () => {
+		whoWonAndHow(); // populates winningConditions
+		winningConditions.gameOver =(winningConditions.winner != noPlayer || Gameboard.isFull());
+		return winningConditions;
 	};
 	
 	const endTurn = () => { 
@@ -199,6 +239,7 @@ GameController = ((gb) => {
 		_resetWhoPlays();
 		_resetTurn();
 		_resetGameboard();
+		_resetWinningConditions();
 		loadScoreboard();
 	}
 
@@ -243,9 +284,9 @@ GameController = ((gb) => {
 		getWhoPlays,
 		getTurn,
 		getCellValue,
-		whoWon,
+		whoWonAndHow,
 		getGameOver,
-		checkGameOver,
+		checkWinningConditions,
 		endTurn,
 		init,
 		reset,
@@ -293,7 +334,7 @@ DisplayController = ((gb) => {
 		for (let row = 0; row < GRID_SIZE; row++) {
 			rowTr = document.createElement("tr");
 			rowTr.className = "gameboard";
-			//gameboardTable.setAttribute("data-row", row);
+			gameboardTable.setAttribute("data-row", row);
 			
 			for (let column = 0; column < GRID_SIZE; column++) {
 				columnTd = document.createElement("td");
@@ -309,6 +350,34 @@ DisplayController = ((gb) => {
 		contentDiv.appendChild(gameboardTable);
 	};
 
+	const markWinningCells = (winningConditions) => {
+		let cellList = [];
+		switch (winningConditions.winningComboType) {
+			case "row":
+				cellList = document.querySelectorAll("[data-row='" + winningConditions.winningComboNumber + "']");
+
+			break;
+			case "column":
+				cellList = document.querySelectorAll("[data-column='" + winningConditions.winningComboNumber + "']");
+			break;
+			case "diagonal":
+				if (winningConditions.winningComboNumber == 0) {
+					cellList.push(document.querySelector("[data-row='0'][data-column='0'] "));
+					cellList.push(document.querySelector("[data-row='1'][data-column='1'] "));
+					cellList.push(document.querySelector("[data-row='2'][data-column='2'] "));
+				} else if (winningConditions.winningComboNumber == 1) {
+					cellList.push(document.querySelector("[data-row='0'][data-column='2'] "));
+					cellList.push(document.querySelector("[data-row='1'][data-column='1'] "));
+					cellList.push(document.querySelector("[data-row='2'][data-column='0'] "));
+				}
+			break;
+			default:
+		}
+		for (let i = 0; i < cellList.length; i++) {
+			cellList[i].classList.add('winnerCell');
+		}
+	}
+
 	const displayScoreboard = () => {
 		//console.log("The winner is: " + winner);
 		document.getElementById("player1Name").innerText = GameController.getPlayer(PLAYER1).getName();
@@ -322,6 +391,7 @@ DisplayController = ((gb) => {
 	return {
 		updateGameboardCell,
 		displayGameboard,
+		markWinningCells,
 		displayScoreboard,
 	};
 })(GameController);
@@ -403,6 +473,7 @@ function restartGame() {
 	GameController.reset();
 	DisplayController.displayGameboard();
 	addCellEventListeners();
+	//document.querySelectorAll(".cell").classList.remove("winnerCell");
 }
 
 function endGame() {
@@ -427,9 +498,12 @@ function computePlay(event) {
 	
 	console.log("END OF TURN: " + GameController.getTurn());
 
-	if (GameController.checkGameOver()) {
-		GameController.setLastWinner(GameController.whoWon());
+	let winningConditions = GameController.checkWinningConditions();
+	if (winningConditions.gameOver) {
+		GameController.setLastWinner(winningConditions.winner);
 		GameController.getLastWinner().incNumberOfVictories();
+		DisplayController.markWinningCells(winningConditions);
+		
 		GameController.saveScoreboard();
 		DisplayController.displayScoreboard();
 		showWinMessageModal(GameController.getLastWinner());

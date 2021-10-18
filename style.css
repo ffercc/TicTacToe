@@ -66,6 +66,10 @@ td.gameboard {
 	background-color: lightyellow;
 }
 
+td.gameboard.winnerCell {
+	background-color: darkgoldenrod;
+}
+
 @keyframes cellAnimation {
 	from {
 		font-size: 90px;
