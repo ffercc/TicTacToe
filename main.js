@@ -13,50 +13,6 @@ const prompt = require('prompt');
 prompt.start();
 */
 
-/*
-function createStyleSheet() {
-	let styleSheet = document.createElement("style");
-	styleSheet.type = 'text/css';
-	styleSheet.innerText = "\
-		html {\
-			background-image: url('./images/background_wood.jpeg');\
-		}\
-		body {\
-			padding: 20px;\
-			}\		p {\
-			font-size: 16px;\
-			font-weight: normal;\
-			height: 100px;\
-			width:400px;\
-			color: black;\
-			padding: 10px;\
-			}\
-		.content {\
-			display: flex;\
-			align-items: flex-start;\
-			justify-content: center;\
-			flex-wrap: wrap;\
-			padding: 20px;\
-			}\
-		#addBook {\
-			text-align: center;\
-			color: white;\
-			background-color: green;\
-			border-style: solid;\
-			border-color: gray;\
-			border-width: 1px;\
-			border-radius: 10px;\
-			width: 160px;\
-			max-height: 44px;\
-			font-size: 24px;\
-			padding: 10px ;\
-			cursor:pointer;\
-			}\
-		";
-	document.head.appendChild(styleSheet);
-}
-*/
-
 // Para evitar la falta de referencia de algún módulo u objeto dentro de un módulo, declaro todo aquí al principio.
 // Luego uso Object.freeze() para congelar los módulos y objetos declarados.
 // Declarar todo como funciones vacías
@@ -65,6 +21,7 @@ let Gameboard = () => {};
 let GameController = () => {};
 let DisplayController = () => {};
 
+// ¡¡¡Cuidado!!! Estos objetos deben ser usados una vez se hayan definido correctamente. Incluir una funcion de inicialiciacion que se llame una vez se hayan definido estos objetos (si hacemos const player = Player(...) antes de definir definitivamente el objeto, creará un objeto vacío
 /** Factory Objects declarations **/
 let Player = () => {};
 
@@ -157,75 +114,147 @@ Object.freeze(Gameboard);
 GameController = ((gb) => {
 	
 	/** Private Attributes **/
+	const noPlayer = {}; // defined in init()
+	const players = []; // populated in init()
+	
 	let gameOver = false;
-	let whoPlays = PLAYER1;
+	let whoPlays = noPlayer;
 	let turn = 1;
+	
+	// These attributes are saved in persistent memory in function after each game
+	let numberOfUserVictories = 0;
+	let numberOfCPUVictories = 0;
+	let lastWinner = null;
+	let lastWinnerName = ""; // for display purpioses only
 	
 	/** Public Attributes (constants or references) **/
 	
 	/** Private Methods **/
-	/*
-	const _privateMethod1 = () => {
-		// code of _privateMethod1
-	};
-	*/
+	const _resetWhoPlays = () => {
+		whoPlays = players[0];
+	}
 	
-	/** Public Methods **/
-	// Getters and Setters
-	const getWhoPlays = () => { return whoPlays; };
-	const getTurn = () => { return turn; };
-	
-	const resetGameboard = () => {
+	const _resetGameboard = () => {
 		Gameboard.buildGameboard(GRID_SIZE, GRID_SIZE, EMPTY_CELL);
 	}
 	
-	const getWinner = () => {
-		if (Gameboard.threeInARow(PLAYER1) || Gameboard.threeInAColumn(PLAYER1) 
-		|| Gameboard.threeInADiagonal(PLAYER1)) {
-			return PLAYER1;
-		}
-		if (Gameboard.threeInARow(PLAYER2) || Gameboard.threeInAColumn(PLAYER2) 
-		|| Gameboard.threeInADiagonal(PLAYER2)) {
-			return PLAYER2;
-		}
-		return NO_WINNER;
+	const _resetTurn = () => {
+		turn = 1;
+	}
+	
+	
+	/** Public Methods **/
+	
+	const setLastWinner = (value) => { 
+		lastWinner = value; 
+		lastWinnerName = lastWinner.getName();
+	}
+	
+	const getLastWinner = () => { return lastWinner; };
+	const getLastWinnerName = () => { return lastWinnerName; };
+	
+	const getPlayer = (playerId) => {
+		let returnPlayer = players.find( (player) => player.getId() == playerId);
+		if (returnPlayer === undefined) { returnPlayer = noPlayer; }
+		return returnPlayer;
+	};
+	
+	const getWhoPlays = () => { return whoPlays; };
+	const getTurn = () => { return turn; };
+	
+	const getCellValue = (row, column) => {return Gameboard.getCellValue(row, column);};
+	
+	const whoWon = () => {
+		let winner = players.find((player) => (Gameboard.threeInARow(player.getId()) 
+			|| Gameboard.threeInAColumn(player.getId()) 
+			|| Gameboard.threeInADiagonal(player.getId()))
+		);
+		if (winner === undefined) { winner = noPlayer; };
+		return winner;
 	};
 	
 	const getGameOver = () => { return gameOver; }
 	
 	const checkGameOver = () => {
-		gameOver =(getWinner() != NO_WINNER || Gameboard.isFull())
+		gameOver =(whoWon() != noPlayer || Gameboard.isFull())
 		return gameOver;
 	};
 	
 	const endTurn = () => { 
 		++turn;
-		if (whoPlays == PLAYER1) {
-			whoPlays = PLAYER2;
-			return whoPlays;
-		} else {
-			whoPlays = PLAYER1;
-			return whoPlays;
+		let nextPlayerIndex = players.findIndex((player) => player == whoPlays) + 1;
+		if (nextPlayerIndex > players.length-1) {
+			nextPlayerIndex = 0;
 		}
+		whoPlays = players[nextPlayerIndex];
 	};
 
-	const updateBoard = (player, play) => {
-		Gameboard.setCellValue(player, play.row, play.column);
+	const init = () => {
+		Object.assign(noPlayer, Player(NO_WINNER, "No One", " "));
+		players.push(Player(PLAYER1, "Player", "X"));
+		players.push(Player(PLAYER2, "CPU", "0"));
 	}
 
+	const reset = () => {
+		_resetWhoPlays();
+		_resetTurn();
+		_resetGameboard();
+		loadScoreboard();
+	}
+
+	const updateGameboard = (player, play) => {
+		Gameboard.setCellValue(player, play.row, play.column);
+	}
+	
+	const loadScoreboard = () => {
+		// Recover from local storage but only if variables exist in local storage
+		let recoveredValue = null;
+		players.forEach((player, index, array) => {
+			recoveredValue = localStorage.getItem(player.getName() + ".numberOfVictories");
+			if (recoveredValue !== null) {
+				player.setNumberOfVictories(parseInt(recoveredValue));
+			}
+		});
+		recoveredValue = localStorage.getItem(noPlayer.getName() + ".numberOfVictories");
+		// number of ties
+		if (recoveredValue !== null) {
+			noPlayer.setNumberOfVictories(parseInt(recoveredValue));
+		}
+		recoveredValue = localStorage.getItem("lastWinnerName")
+		if ( recoveredValue !== null) {
+			lastWinnerName = recoveredValue;
+		}
+	}
+
+	const saveScoreboard = () => {
+		players.forEach((player, index, array) => {
+			localStorage.setItem(player.getName() + ".numberOfVictories", player.getNumberOfVictories());
+		});
+		localStorage.setItem(noPlayer.getName() + ".numberOfVictories", noPlayer.getNumberOfVictories());
+		localStorage.setItem("lastWinnerName", lastWinner.getName());
+	}
+	
 	// Object returned
 	return {
+		setLastWinner,
+		getLastWinner,
+		getLastWinnerName,
+		getPlayer,
 		getWhoPlays,
 		getTurn,
-		resetGameboard,
-		getWinner,
+		getCellValue,
+		whoWon,
 		getGameOver,
 		checkGameOver,
 		endTurn,
-		updateBoard,
+		init,
+		reset,
+		updateGameboard,
+		loadScoreboard,
+		saveScoreboard,
 	};
 })(Gameboard, Player);
-Object.freeze(GameController);
+Object.freeze(GameController, Player);
 
 /** DisplayController module implementation **/
 DisplayController = ((gb) => {
@@ -240,21 +269,14 @@ DisplayController = ((gb) => {
 	*/
 	
 	/** Public Methods **/
-/*
-	const displayMainScreen = () => {
+	const updateGameboardCell = (row, column, graph) => { 
 		
-		//let contentDiv = document.getElementsByClassName("content")[0];
-		//contentDiv.innerHTML = "";
-		let headerDiv = document.getElementsByClassName("header")[0];
-		headerDiv.innerHTML = "";
-		let startButton = document.createElement("button");
-		startButton.innerText = "START GAME";
-		headerDiv.appendChild(startButton);
-		startButton.onclick = startGame();
-	}
-*/
+		let columnLi = document.querySelector("li.cell[data-row='" + row + "'][data-column='" + column + "']");
+		columnLi.innerText = graph;
+		
+	};
 
-	const displayGameboard = (graph1, graph2) => { 
+	const displayGameboard = () => { 
 		
 		let contentDiv = document.getElementsByClassName("content")[0];
 		contentDiv.innerHTML = "";
@@ -276,26 +298,7 @@ DisplayController = ((gb) => {
 				columnLi.className = "cell";
 				columnLi.setAttribute("data-column", column);
 				columnLi.setAttribute("data-row", row);
-				
-				if (Gameboard.getCellValue(row, column) == PLAYER1) {
-					/*
-					columnLi.style = "\
-								list-style-image: url(./images/graphPlayer1.png);\
-					"
-					*/
-					columnLi.innerText = graph1;
-				}
-				else if (Gameboard.getCellValue(row, column) == PLAYER2) {
-					/*
-					columnLi.style = "\
-								list-style-image: url(./images/graphPlayer2.png);\
-					"
-					*/
-					columnLi.innerText = graph2;
-				}
-				else if (Gameboard.isEmptyCell(row, column)) {
-					columnLi.innerText = "";
-				}
+				columnLi.innerText = GameController.getPlayer(GameController.getCellValue(row, column)).getGraph();
 				rowUl.appendChild(columnLi);
 			}
 			gameboardDiv.appendChild(rowUl);
@@ -306,19 +309,22 @@ DisplayController = ((gb) => {
 		addEventListeners();
 	};
 
-	const displayWinner = (winner, numberOfUserVictories, numberOfCPUVictories) => {
+	const displayScoreboard = () => {
 		//console.log("The winner is: " + winner);
-		document.getElementById("numberOfUserVictories").innerText = numberOfUserVictories;
-		document.getElementById("numberOfCPUVictories").innerText = numberOfCPUVictories;
-		document.getElementById("winner").innerText = winnerToString(winner);
+		document.getElementById("player1Name").innerText = GameController.getPlayer(PLAYER1).getName();
+		document.getElementById("player2Name").innerText = GameController.getPlayer(PLAYER2).getName();
+		document.getElementById("numberOfUserVictories").innerText = GameController.getPlayer(PLAYER1).getNumberOfVictories();
+		document.getElementById("numberOfCPUVictories").innerText = GameController.getPlayer(PLAYER2).getNumberOfVictories();
+		document.getElementById("lastWinnerName").innerText = GameController.getLastWinnerName();
 	}
 
 	// Object returned
 	return {
+		updateGameboardCell,
 		displayGameboard,
-		displayWinner,
+		displayScoreboard,
 	};
-})(Gameboard);
+})(GameController);
 Object.freeze(DisplayController);
 
 /** Factory object Player implementation **/
@@ -326,6 +332,7 @@ Player = (playerId, name, graph) => {
 	
 	/** Private Attributes **/
 	let id = playerId;
+	let numberOfVictories = 0;
 	
 	/** Private Methods **/
 	/*
@@ -339,7 +346,11 @@ Player = (playerId, name, graph) => {
 	//publicAtts.attr2 = 2;
 	
 	/** Public Methods **/
-	// Getters and Setters
+	const setNumberOfVictories = (value) => { numberOfVictories = value; };
+	const incNumberOfVictories = () => { numberOfVictories++; };
+	const resetNumberOfVictories = () => { numberOfVictories = 0; };
+	
+	const getNumberOfVictories = () => { return numberOfVictories; };
 	const getId = () => { return id; };
 	const getName = () => { return name; };
 	const getGraph = () => { return graph; };
@@ -353,6 +364,10 @@ Player = (playerId, name, graph) => {
 
 	// Object returned
 	return {
+		setNumberOfVictories,
+		incNumberOfVictories,
+		resetNumberOfVictories,
+		getNumberOfVictories,
 		getId,
 		getName,
 		getGraph,
@@ -362,102 +377,62 @@ Player = (playerId, name, graph) => {
 Object.freeze(Player);
 
 /** Global variables **/
-const player1 = Player(PLAYER1, "Player 1", "X");
-const player2 = Player(PLAYER2, "Player 2", "0");
-
-let numberOfUserVictories = 0; // Player1
-let numberOfCPUVictories = 0; // Player2
-
-function winnerToString(winner) {
-		switch(winner) {
-			case PLAYER1:
-				return "PLAYER 1";
-				break;
-			case PLAYER2:
-				return "PLAYER 2";
-				break;
-			case NO_WINNER:
-				return "TIE";
-				break;
-			default:
-				// code block
-		}
-}
+// none
 
 function startGame() {
 	
 	hideWinMessageModal();
 	
-	// Game screen: reset and draw gameboard, player names, ...
-	GameController.resetGameboard();
-	DisplayController.displayGameboard(player1.getGraph(), player2.getGraph());
+	// init: Create players
+	GameController.init();
+	// resets game values (gameboard, etc)
+	GameController.reset();
 	
-	// The start player is PLAYER_1 (set in GameController constructor)
-	
+	DisplayController.displayGameboard();
+	DisplayController.displayScoreboard();
+
 	// Print: turn_number, whoplays
-	
 	
 }
 
 function restartGame() {
-	//GameController.resetGameboard();
-	
-	// Añadir un modal con el MENSAJE DE VICTORIA
+	GameController.reset();
+	DisplayController.displayGameboard();
 }
 
 function computePlay(event) {
 		
-	let play = null;
 	console.log("TURN: " + GameController.getTurn());
-	console.log ("Turn for Player" + GameController.getWhoPlays() + "\n\n");
+	console.log ("Turn for Player" + GameController.getWhoPlays().getName() + "\n\n");
 	
-	if (GameController.getWhoPlays() == PLAYER1) {
-		play = player1.play(event);
-		if (!Gameboard.isEmptyCell(play.row, play.column)) {
+	let player = GameController.getWhoPlays();
+	let play = player.play(event);
+	if (!Gameboard.isEmptyCell(play.row, play.column)) {
 			// square not free: emit a sound or do something...
 			return;
 		}
-		GameController.updateBoard(PLAYER1, play);
-		
-	} else if (GameController.getWhoPlays() == PLAYER2) {
-		play = player2.play(event);
-		if (!Gameboard.isEmptyCell(play.row, play.column)) {
-			// square not free: emit a sound or do something...
-			return;
-		}
-		GameController.updateBoard(PLAYER2, play);
-	};
-	
-	DisplayController.displayGameboard(player1.getGraph(), player2.getGraph());
+	GameController.updateGameboard(player.getId(), play);
+	DisplayController.updateGameboardCell(play.row, play.column, player.getGraph());
 	
 	console.log("END OF TURN: " + GameController.getTurn());
 
-	// Check for gameover
 	if (GameController.checkGameOver()) {
-		let winner = GameController.getWinner();
-		winner = PLAYER1 ? numberOfUserVictories++ : numberOfCPUVictories++;
-		DisplayController.displayWinner(winner, numberOfUserVictories, numberOfCPUVictories);
-		showWinMessageModal(winner); // show win message
+		GameController.setLastWinner(GameController.whoWon());
+		GameController.getLastWinner().incNumberOfVictories();
+		GameController.saveScoreboard();
+		DisplayController.displayScoreboard();
+		showWinMessageModal(GameController.getLastWinner());
+		restartGame();
+		return;
 	}
 	
 	GameController.endTurn();
-	
 	console.log ("====================================\n\n");
 	
 }
 
-/*
-function main() {
-	
-	// Main screen: add js code to regenerate it (for each restart)
-	// Button with Eventlistener: startGame()
-	DisplayController.displayMainScreen();
-	
-}
-*/
-
 /** Main **/
-//main();
+startGame();
 
 /** Listeners **/
 
@@ -490,7 +465,7 @@ window.onclick = function(event) {
 
 function showWinMessageModal(winner) {
 	document.getElementById("winMessage").style.display = "block";
-	document.getElementById("message").innerText = "WINNER: " + winnerToString(winner);
+	document.getElementById("message").innerText = "WINNER: " + winner.getName();
 }
 
 function hideWinMessageModal() {
