@@ -191,8 +191,8 @@ GameController = ((gb) => {
 
 	const init = () => {
 		Object.assign(noPlayer, Player(NO_WINNER, "No One", " "));
-		players.push(Player(PLAYER1, "Player", "X"));
-		players.push(Player(PLAYER2, "CPU", "0"));
+		players.push(Player(PLAYER1, "Player", "X", "blue"));
+		players.push(Player(PLAYER2, "CPU", "0", "red"));
 	}
 
 	const reset = () => {
@@ -269,11 +269,11 @@ DisplayController = ((gb) => {
 	*/
 	
 	/** Public Methods **/
-	const updateGameboardCell = (row, column, graph) => { 
+	const updateGameboardCell = (row, column, graph, color) => { 
 		
-		let columnLi = document.querySelector("li.cell[data-row='" + row + "'][data-column='" + column + "']");
-		columnLi.innerText = graph;
-		
+		let columnTd = document.querySelector("td.cell[data-row='" + row + "'][data-column='" + column + "']");
+		columnTd.innerText = graph;
+		columnTd.style = "color: " + color + ";";
 	};
 
 	const displayGameboard = () => { 
@@ -281,32 +281,32 @@ DisplayController = ((gb) => {
 		let contentDiv = document.getElementsByClassName("content")[0];
 		contentDiv.innerHTML = "";
 		
-		let gameboardDiv = document.createElement("div");
-		gameboardDiv.setAttribute("id", "gameboard");
-		gameboardDiv.className = "gameboard";
+		// Usar table (en vez de div), tr (en vez de ul) y td (en vez de li) mejor
+		let gameboardTable = document.createElement("table");
+		gameboardTable.setAttribute("id", "gameboard");
+		gameboardTable.className = "gameboard";
 		
-		let rowUl = null;
-		let columnLi = null;
+		let rowTr = null;
+		let columnTd = null;
 		
 		let output = "";
 		for (let row = 0; row < GRID_SIZE; row++) {
-			rowUl = document.createElement("ul");
-			//gameboardDiv.setAttribute("data-row", row);
+			rowTr = document.createElement("tr");
+			rowTr.className = "gameboard";
+			//gameboardTable.setAttribute("data-row", row);
 			
 			for (let column = 0; column < GRID_SIZE; column++) {
-				columnLi = document.createElement("li");
-				columnLi.className = "cell";
-				columnLi.setAttribute("data-column", column);
-				columnLi.setAttribute("data-row", row);
-				columnLi.innerText = GameController.getPlayer(GameController.getCellValue(row, column)).getGraph();
-				rowUl.appendChild(columnLi);
+				columnTd = document.createElement("td");
+				columnTd.className = "cell gameboard";
+				columnTd.setAttribute("data-column", column);
+				columnTd.setAttribute("data-row", row);
+				columnTd.innerText = GameController.getPlayer(GameController.getCellValue(row, column)).getGraph();
+				columnTd.style = "color: " + GameController.getPlayer(GameController.getCellValue(row, column)).getCSSColor() + ";";
+				rowTr.appendChild(columnTd);
 			}
-			gameboardDiv.appendChild(rowUl);
+			gameboardTable.appendChild(rowTr);
 		}
-		contentDiv.appendChild(gameboardDiv);
-		
-		// Don't forget to add the EventListener to each cell
-		addEventListeners();
+		contentDiv.appendChild(gameboardTable);
 	};
 
 	const displayScoreboard = () => {
@@ -328,9 +328,10 @@ DisplayController = ((gb) => {
 Object.freeze(DisplayController);
 
 /** Factory object Player implementation **/
-Player = (playerId, name, graph) => {
+Player = (playerId, name, graph, color) => {
 	
 	/** Private Attributes **/
+	let cssColor = color;
 	let id = playerId;
 	let numberOfVictories = 0;
 	
@@ -354,6 +355,7 @@ Player = (playerId, name, graph) => {
 	const getId = () => { return id; };
 	const getName = () => { return name; };
 	const getGraph = () => { return graph; };
+	const getCSSColor = () => { return cssColor; };
 	
 	const play = (event) => {
 		let row = event.currentTarget.dataset.row;
@@ -371,6 +373,7 @@ Player = (playerId, name, graph) => {
 		getId,
 		getName,
 		getGraph,
+		getCSSColor,
 		play,
 	}
 };
@@ -389,6 +392,7 @@ function startGame() {
 	GameController.reset();
 	
 	DisplayController.displayGameboard();
+	addCellEventListeners();
 	DisplayController.displayScoreboard();
 
 	// Print: turn_number, whoplays
@@ -398,7 +402,14 @@ function startGame() {
 function restartGame() {
 	GameController.reset();
 	DisplayController.displayGameboard();
+	addCellEventListeners();
 }
+
+function endGame() {
+	// Disable event listeners
+	removeCellEventListeners();
+}
+
 
 function computePlay(event) {
 		
@@ -412,7 +423,7 @@ function computePlay(event) {
 			return;
 		}
 	GameController.updateGameboard(player.getId(), play);
-	DisplayController.updateGameboardCell(play.row, play.column, player.getGraph());
+	DisplayController.updateGameboardCell(play.row, play.column, player.getGraph(), player.getCSSColor());
 	
 	console.log("END OF TURN: " + GameController.getTurn());
 
@@ -422,7 +433,7 @@ function computePlay(event) {
 		GameController.saveScoreboard();
 		DisplayController.displayScoreboard();
 		showWinMessageModal(GameController.getLastWinner());
-		restartGame();
+		endGame();
 		return;
 	}
 	
@@ -436,15 +447,32 @@ startGame();
 
 /** Listeners **/
 
-function addEventListeners() {
+function addClicked(event) {
+	event.preventDefault();
+	event.currentTarget.classList.add("clicked");
+	}
+
+function removeClicked(event) {
+	event.currentTarget.classList.remove("clicked");
+	}
+
+function addCellEventListeners() {
 	// Eventlistener on each cell: computePlay()
 	let cellElements = document.getElementsByClassName("cell");
 	// uso del spread operator para transformar la HTMLCollection en Array y poder usar forEach
 	[...cellElements].forEach((element, index, array) => {
-		element.onclick = computePlay;
+		element.addEventListener("click", computePlay, {once:true});
 	});
 }
 
+function removeCellEventListeners() {
+	// Eventlistener on each cell: computePlay()
+	let cellElements = document.getElementsByClassName("cell");
+	// uso del spread operator para transformar la HTMLCollection en Array y poder usar forEach
+	[...cellElements].forEach((element, index, array) => {
+		element.removeEventListener('click', computePlay);
+	});
+}
 
 /** Modals **/
 
@@ -465,7 +493,7 @@ window.onclick = function(event) {
 
 function showWinMessageModal(winner) {
 	document.getElementById("winMessage").style.display = "block";
-	document.getElementById("message").innerText = "WINNER: " + winner.getName();
+	document.getElementById("message").innerText = "THE WINNER IS: " + winner.getName();
 }
 
 function hideWinMessageModal() {
