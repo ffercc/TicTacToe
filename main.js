@@ -7,7 +7,6 @@ const NO_WINNER = 0;
 const PLAYER1 = 1;
 const PLAYER2 = 2;
 
-//const GRID_SIZE = 5; // number of row == number of columns
 var gridSize = 3; // number of row == number of columns
 
 /*
@@ -240,6 +239,7 @@ GameController = ((gb) => {
 		Object.assign(noPlayer, Player(NO_WINNER, "No One", " ", "gray"));
 		players.push(Player(PLAYER1, "X", "X", "blue"));
 		players.push(Player(PLAYER2, "0", "0", "red"));
+		lastWinner = noPlayer; // overwritten afterwards if in local storage
 	}
 
 	const reset = () => {
@@ -268,9 +268,11 @@ GameController = ((gb) => {
 		if (recoveredValue !== null) {
 			noPlayer.setNumberOfVictories(parseInt(recoveredValue));
 		}
-		recoveredValue = localStorage.getItem("lastWinnerName")
+		// last Winner
+		recoveredValue = JSON.parse(localStorage.getItem("lastWinner")); // tipo genérico Object
 		if ( recoveredValue !== null) {
-			lastWinnerName = recoveredValue;
+			lastWinner = copyObjectToPlayer(recoveredValue);
+			lastWinnerName = lastWinner.getName(); //esto estaba sólo pq antes no guardaba el objeto, solo el nombre
 		}
 	}
 
@@ -278,8 +280,8 @@ GameController = ((gb) => {
 		players.forEach((player, index, array) => {
 			localStorage.setItem(player.getName() + ".numberOfVictories", player.getNumberOfVictories());
 		});
-		localStorage.setItem(noPlayer.getName() + ".numberOfVictories", noPlayer.getNumberOfVictories());
-		localStorage.setItem("lastWinnerName", lastWinner.getName());
+		localStorage.setItem(noPlayer.getName() + ".numberOfVictories", noPlayer.getNumberOfVictories()); // ties (Player noPlayer)
+		localStorage.setItem("lastWinner", JSON.stringify(lastWinner));
 	}
 	
 	const resetScore = () => {
@@ -425,11 +427,13 @@ DisplayController = ((gb) => {
 Object.freeze(DisplayController);
 
 /** Factory object Player implementation **/
-Player = (playerId, name, graph, color) => {
+Player = (_playerId, _name, _graph, _color) => {
 	
 	/** Private Attributes **/
-	let cssColor = color;
-	let id = playerId;
+	const name = _name;
+	const graph = _graph;
+	let cssColor = _color;
+	let id = _playerId;
 	let numberOfVictories = 0;
 	
 	/** Private Methods **/
@@ -460,7 +464,12 @@ Player = (playerId, name, graph, color) => {
 		return {row, column};
 	};
 	
-
+	/** Other **/
+	// función necesaria para serializar el factory object
+	const toJSON = () => {
+		return {name, graph, cssColor, id, numberOfVictories};
+	}
+	
 	// Object returned
 	return {
 		setNumberOfVictories,
@@ -472,9 +481,21 @@ Player = (playerId, name, graph, color) => {
 		getGraph,
 		getCSSColor,
 		play,
+		toJSON,
 	}
 };
 Object.freeze(Player);
+
+// Helper function
+function copyObjectToPlayer(obj) {
+	if (obj == null) {
+		return null;
+	} else {
+		let returnValue = Player(obj.id, obj.name, obj.graph, obj.cssColor);
+		returnValue.setNumberOfVictories(obj.numberOfVictories);
+		return returnValue;
+	}
+}
 
 function startGame() {
 	
