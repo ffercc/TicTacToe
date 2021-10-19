@@ -5,7 +5,7 @@ const NO_WINNER = 0;
 const PLAYER1 = 1;
 const PLAYER2 = 2;
 
-const GRID_SIZE = 3; // number of row == number of columns
+const GRID_SIZE = 5; // number of row == number of columns
 
 /*
 // Para debug en nodejs
@@ -49,12 +49,13 @@ Gameboard = (() => {
 	}
 	
 	const getGameboard = () => { return gameboard; };
+	const getGameboardLength = () => { return gameboard.length; };
 	const setCellValue = (value, row, column) => { gameboard[row][column] = value; };
 	const getCellValue = (row, column) => { return gameboard[row][column]; };
 	const isEmptyCell = (row, column) => { return getCellValue(row, column) == EMPTY_CELL ? true : false; };
 	const isFull = () => { 
 		let returnValue = true;
-		for (let row = 0; row < GRID_SIZE; row++) {
+		for (let row = 0; row < gameboard.length; row++) {
 			returnValue = returnValue && gameboard[row].every((value) => value != EMPTY_CELL);
 		}
 		return returnValue;
@@ -62,7 +63,7 @@ Gameboard = (() => {
 	
 	const threeInARow = (value) => {
 		let returnValue = -1;
-		for (let row = 0; row < GRID_SIZE; row++) {
+		for (let row = 0; row < gameboard.length; row++) {
 			if (gameboard[row].every( (val) => val == value)) {returnValue = row;}
 		}
 		return returnValue; // returns the winning row or -1 (no win condition met)
@@ -71,9 +72,9 @@ Gameboard = (() => {
 	const threeInAColumn = (value) => {
 		let returnValue = -1;
 		let columnTempArray = [];
-		for (let column = 0; column < GRID_SIZE; column++) {
+		for (let column = 0; column < gameboard.length; column++) {
 			columnTempArray = [];
-			for (let row = 0; row < GRID_SIZE; row++) {
+			for (let row = 0; row < gameboard.length; row++) {
 				columnTempArray.push(gameboard[row][column]);
 			}
 			if (columnTempArray.every( (val) => val == value )) {returnValue = column;}
@@ -85,9 +86,9 @@ Gameboard = (() => {
 		let returnValue = -1;
 		let diagonalTempArray1 = [];
 		let diagonalTempArray2 = [];
-		for (let row = 0; row < GRID_SIZE; row++) {
+		for (let row = 0; row < gameboard.length; row++) {
 			diagonalTempArray1.push(gameboard[row][row]);
-			diagonalTempArray2.push(gameboard[row][(GRID_SIZE-1)-row]);
+			diagonalTempArray2.push(gameboard[row][(gameboard.length-1)-row]);
 		}
 		if (diagonalTempArray1.every( (val) => val == value )) returnValue = 0;
 		if (diagonalTempArray2.every( (val) => val == value )) returnValue = 1;
@@ -98,6 +99,7 @@ Gameboard = (() => {
 	return {
 		buildGameboard,
 		getGameboard,
+		getGameboardLength,
 		setCellValue, 
 		getCellValue, 
 		isEmptyCell,
@@ -156,7 +158,9 @@ GameController = ((gb) => {
 	const setLastWinner = (value) => { 
 		lastWinner = value; 
 		lastWinnerName = lastWinner.getName();
-	}
+	};
+	
+	const getGameboardLength = () => { return Gameboard.getGameboardLength(); }; 
 	
 	const getLastWinner = () => { return lastWinner; };
 	const getLastWinnerName = () => { return lastWinnerName; };
@@ -287,6 +291,7 @@ GameController = ((gb) => {
 	// Object returned
 	return {
 		setLastWinner,
+		getGameboardLength,
 		getLastWinner,
 		getLastWinnerName,
 		getPlayer,
@@ -341,12 +346,12 @@ DisplayController = ((gb) => {
 		let columnTd = null;
 		
 		let output = "";
-		for (let row = 0; row < GRID_SIZE; row++) {
+		for (let row = 0; row < GameController.getGameboardLength(); row++) {
 			rowTr = document.createElement("tr");
 			rowTr.className = "gameboard";
 			gameboardTable.setAttribute("data-row", row);
 			
-			for (let column = 0; column < GRID_SIZE; column++) {
+			for (let column = 0; column < GameController.getGameboardLength(); column++) {
 				columnTd = document.createElement("td");
 				columnTd.className = "cell gameboard";
 				columnTd.setAttribute("data-column", column);
@@ -371,14 +376,21 @@ DisplayController = ((gb) => {
 				cellList = document.querySelectorAll("[data-column='" + winningConditions.winningComboNumber + "']");
 			break;
 			case "diagonal":
+			
 				if (winningConditions.winningComboNumber == 0) {
-					cellList.push(document.querySelector("[data-row='0'][data-column='0'] "));
-					cellList.push(document.querySelector("[data-row='1'][data-column='1'] "));
-					cellList.push(document.querySelector("[data-row='2'][data-column='2'] "));
+					for (let row = 0; row < GameController.getGameboardLength(); row++) {
+						cellList.push(document.querySelector("[data-row='" + row + "'][data-column='" + row + "'] "));
+					}
+					//cellList.push(document.querySelector("[data-row='0'][data-column='0'] "));
+					//cellList.push(document.querySelector("[data-row='1'][data-column='1'] "));
+					//cellList.push(document.querySelector("[data-row='2'][data-column='2'] "));
 				} else if (winningConditions.winningComboNumber == 1) {
-					cellList.push(document.querySelector("[data-row='0'][data-column='2'] "));
-					cellList.push(document.querySelector("[data-row='1'][data-column='1'] "));
-					cellList.push(document.querySelector("[data-row='2'][data-column='0'] "));
+					for (let row = 0; row < GameController.getGameboardLength(); row++) {
+						cellList.push(document.querySelector("[data-row='" + row + "'][data-column='" + (GameController.getGameboardLength()-1-row) + "'] "));
+					}
+					//cellList.push(document.querySelector("[data-row='0'][data-column='2'] "));
+					//cellList.push(document.querySelector("[data-row='1'][data-column='1'] "));
+					//cellList.push(document.querySelector("[data-row='2'][data-column='0'] "));
 				}
 			break;
 			default:
