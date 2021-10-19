@@ -1,11 +1,14 @@
 "use strict"
 
+/** Constants and Global Variables **/
+
 const EMPTY_CELL = 0;
 const NO_WINNER = 0;
 const PLAYER1 = 1;
 const PLAYER2 = 2;
 
-const GRID_SIZE = 5; // number of row == number of columns
+//const GRID_SIZE = 5; // number of row == number of columns
+var gridSize = 3; // number of row == number of columns
 
 /*
 // Para debug en nodejs
@@ -138,7 +141,7 @@ GameController = ((gb) => {
 	}
 	
 	const _resetGameboard = () => {
-		Gameboard.buildGameboard(GRID_SIZE, GRID_SIZE, EMPTY_CELL);
+		Gameboard.buildGameboard(gridSize, gridSize, EMPTY_CELL);
 	}
 	
 	const _resetTurn = () => {
@@ -405,7 +408,10 @@ DisplayController = ((gb) => {
 		document.getElementById("player2Name").innerText = GameController.getPlayer(PLAYER2).getName();
 		document.getElementById("numberOfUserVictories").innerText = GameController.getPlayer(PLAYER1).getNumberOfVictories();
 		document.getElementById("numberOfCPUVictories").innerText = GameController.getPlayer(PLAYER2).getNumberOfVictories();
-		document.getElementById("lastWinnerName").innerText = GameController.getLastWinnerName();
+		let lastWinnerCell = document.getElementById("lastWinnerName")
+		let winner = GameController.getLastWinner();
+		lastWinnerCell.innerText = winner.getName();
+		lastWinnerCell.style = "color:" + winner.getCSSColor() + ";animation: thAnimation 1s infinite;"
 	}
 
 	// Object returned
@@ -470,15 +476,13 @@ Player = (playerId, name, graph, color) => {
 };
 Object.freeze(Player);
 
-/** Global variables **/
-// none
-
 function startGame() {
 	
 	hideWinMessageModal();
 	
 	// init: Create players
 	GameController.init();
+	addOutcomeTableStyles()
 	// resets game values (gameboard, etc)
 	GameController.reset();
 	
@@ -502,7 +506,6 @@ function endGame() {
 	// Disable event listeners
 	removeCellEventListeners();
 }
-
 
 function computePlay(event) {
 		
@@ -538,8 +541,28 @@ function computePlay(event) {
 	
 }
 
-/** Main **/
-startGame();
+/** Styles **/
+
+function addOutcomeTableStyles() {
+	// Add some Style to outcome tables (call after initializing game!)
+	let header1 = document.getElementById("player1Name");
+	let header2 = document.getElementById("player2Name");
+	header1.style = "color:" + GameController.getPlayer(PLAYER1).getCSSColor() + ";animation: thAnimation 1s infinite;";
+	header2.style = "color:" + GameController.getPlayer(PLAYER2).getCSSColor() + ";animation: thAnimation 1s infinite;";
+}
+
+/** Sliders **/
+
+let slider = document.getElementById("gridSizeSlider");
+let output = document.getElementById("gridSizeOutput");
+gridSize = slider.value;
+output.innerText = "Grid Size: " + gridSize; // Display the default slider value
+// Update the current slider value (each time you drag the slider handle)
+slider.oninput = function() {
+	gridSize = this.value;
+	output.innerText = "Grid Size: " + gridSize;
+	startGame();
+}
 
 /** Listeners **/
 
@@ -557,8 +580,6 @@ function resetScore() {
 	GameController.resetScore();
 	DisplayController.displayScoreboard();
 }
-
-
 
 function addCellEventListeners() {
 	// Eventlistener on each cell: computePlay()
@@ -619,3 +640,5 @@ function hideWinMessageModal() {
 	}
 }
 
+/** Main **/
+startGame();

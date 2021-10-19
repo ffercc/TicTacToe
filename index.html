@@ -9,10 +9,15 @@
 </head>
 <body>
 	<div class="header">
-		<div id=startButton class="button" onclick="restartGame()" onmousedown="addClicked(event)">Restart Game</div>
-		<div id=resetButton class="button" onclick="resetScore()" onmousedown="addClicked(event)">Reset Score</div>
+		<div class="buttons" >
+			<div id=startButton class="button" onclick="restartGame()" onmousedown="addClicked(event)">Restart Game</div>
+			<div id=resetButton class="button" onclick="resetScore()" onmousedown="addClicked(event)">Reset Score</div>
+		</div>
+		<div class="slidecontainer">
+			<p id="gridSizeOutput"></p>
+			<input class="slider" id="gridSizeSlider" type="range" min="3" max="6" value="3" >
+		</div>
 	</div>
-	<div class="content"></div>
 	<table class="outcome">
 		<tr>
 			<th></th><th id="player1Name"></th><th id="player2Name"></th><th>Last Winner</th>
@@ -21,6 +26,7 @@
 			<td>Number of victories</td><td id="numberOfUserVictories">-</td><td id="numberOfCPUVictories">-</td><td id="lastWinnerName">-</td>
 		</tr>
 	</table>
+	<div class="content"></div>
 	<!-- Modal -->
 	<div class="modal" id="winMessage" style="display:none">
 		<!-- Modal Content -->

@@ -8,9 +8,59 @@ body {
 
 .header {
 	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 50px;
+}
+
+.buttons {
+	display: flex;
 	flex-direction: row;
 	align-items: center;
 	gap: 50px;
+}
+
+.slidecontainer {
+	text-align: center;
+	font-size: 30px;
+	width: 100%; /* Width of the outside container */
+}
+
+/* The slider itself */
+.slider {
+	-webkit-appearance: none;  /* Override default CSS styles */
+	appearance: none;
+	width: 100%; /* Full-width */
+	height: 15px; /* Specified height */
+	background: #d3d3d3; /* Grey background */
+	outline: none; /* Remove outline */
+	opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+	-webkit-transition: .2s; /* 0.2 seconds transition on hover */
+	transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+	opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+	-webkit-appearance: none; /* Override default look */
+	appearance: none;
+	width: 40px; /* Set a specific slider handle width */
+	height: 40px; /* Slider handle height */
+	border-radius: 20px;
+	background: #04AA6D; /* Green background */
+	cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+	width: 40px; /* Set a specific slider handle width */
+	height: 40px; /* Slider handle height */
+	border-radius: 20px;
+	background: #04AA6D; /* Green background */
+	cursor: pointer; /* Cursor on hover */
 }
 
 .blurred {
@@ -116,7 +166,8 @@ td.gameboard.winnerCell {
 
 table.outcome {
 	border:1px solid black;
-	width: 306px;
+	min-width: 500px;
+	font-family: "Apple Chancery", cursive;
 }
 
 th {
@@ -125,7 +176,17 @@ th {
 	width: 50px;
 	text-align: center;
 	background-color: #69bfe2;
-	font-size: 20px;
+	font-size: 24px;
+}
+
+/* Animation for the headers of Player1 and Player2 names*/
+@keyframes thAnimation {
+	from {
+		font-size: 24px;
+	}
+	to {
+		font-size: 30px;
+	}
 }
 
 td {
@@ -134,7 +195,7 @@ td {
 	width: 50px;
 	text-align: center;
 	background-color: #b2cad4;
-	font-size: 20px;
+	font-size: 24px;
 }
 
 .modal {
